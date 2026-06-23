@@ -6,8 +6,9 @@ import { AuthStateService } from '../state/auth.state';
 import { SessionManagerService } from '../services/session-manager.service';
 import { SelectionTokenStorageService } from '../services/selection-token-storage.service';
 import { LoggerService } from '../../logger/logger.service';
-import { LoginRequest, TokenResponse, LoginResponseData } from '../../api/models';
+import { LoginRequest, TokenResponse, LoginResponseData, TenantSelectionRequest } from '../../api/models';
 import { ContextInitializationService } from '../../context/services/context-initialization.service';
+import { AuthFlowStore } from '../state/auth-flow.store';
 
 @Injectable({ providedIn: 'root' })
 export class AuthFacade {
@@ -18,39 +19,42 @@ export class AuthFacade {
   private readonly logger = inject(LoggerService);
   private readonly router = inject(Router);
   private readonly contextInitService = inject(ContextInitializationService);
+  private readonly authFlowStore = inject(AuthFlowStore);
 
-  login(credentials: LoginRequest): Observable<LoginResponseData> {
-    this.logger.info('AUTH', 'Login started', { email: credentials.email });
-    this.authState.setLoading(true);
+  login(credentials: LoginRequest): void {
+    this.logger.info('AUTH FLOW', 'Login submitted', { email: credentials.email });
+    this.authFlowStore.setLoading(true);
+    this.authFlowStore.setError(null);
 
-    return this.authApi.login(credentials).pipe(
+    this.authApi.login(credentials).pipe(
       tap(response => {
-        this.logger.info('AUTH', 'Login response received', { requiresTenantSelection: response.data.requiresTenantSelection });
+        this.logger.info('AUTH FLOW', 'Login response received', { requiresTenantSelection: response.data.requiresTenantSelection });
         
         const data = response.data;
         if (!data.requiresTenantSelection && data.accessToken && data.refreshToken) {
-          this.logger.info('AUTH', 'Single tenant detected, finalizing login');
+          this.logger.info('AUTH FLOW', 'Final JWT received');
           this.finalizeLogin(data as TokenResponse);
           this.contextInitService.initializeContext().subscribe({
             next: () => {
-              this.logger.info('ROUTER', 'NavigationStart => /dashboard');
+              this.logger.info('AUTH FLOW', 'Redirecting dashboard');
               this.router.navigate(['/dashboard']);
             }
           });
         } else if (data.requiresTenantSelection && data.selectionToken) {
-          this.logger.info('AUTH', 'Multiple tenants detected, redirecting to tenant selection');
+          this.logger.info('AUTH FLOW', 'Tenant selection required');
           this.selectionTokenStorage.saveSelectionToken(data.selectionToken);
-          this.logger.info('ROUTER', 'NavigationStart => /auth/select-tenant');
+          this.logger.info('AUTH FLOW', 'Selection token stored');
+          this.authFlowStore.setLoginStep('tenant-selection');
           this.router.navigate(['/auth/select-tenant']);
         }
       }),
-      map(response => response.data),
       catchError(err => {
-        this.logger.error('AUTH', 'Login failed', err);
+        this.logger.error('AUTH ERROR', 'Login failed', err);
+        this.authFlowStore.setError(err.error?.message || 'Login failed. Please try again.');
         return throwError(() => err);
       }),
-      finalize(() => this.authState.setLoading(false))
-    );
+      finalize(() => this.authFlowStore.setLoading(false))
+    ).subscribe();
   }
 
   finalizeLogin(token: TokenResponse): void {
@@ -60,11 +64,11 @@ export class AuthFacade {
       this.authState.setUser(token.user);
     }
     this.authState.setTokens(token.accessToken, token.refreshToken);
-    this.logger.info('AUTH', 'Final access token received and state updated');
+    this.logger.info('AUTH FLOW', 'Final access token received and state updated');
   }
 
   logout(): void {
-    this.logger.info('AUTH', 'Logout initiated');
+    this.logger.info('AUTH FLOW', 'Logout initiated');
     this.authApi.logout().subscribe({
       complete: () => this.clearSessionAndNavigate(),
       error: () => this.clearSessionAndNavigate()

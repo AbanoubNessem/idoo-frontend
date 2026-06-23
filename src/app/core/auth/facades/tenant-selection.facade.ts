@@ -8,6 +8,7 @@ import { AuthFacade } from './auth.facade';
 import { LoggerService } from '../../logger/logger.service';
 import { AvailableTenant, TokenResponse, TenantSelectionRequest } from '../../api/models';
 import { ContextInitializationService } from '../../context/services/context-initialization.service';
+import { AuthFlowStore } from '../state/auth-flow.store';
 
 @Injectable({ providedIn: 'root' })
 export class TenantSelectionFacade {
@@ -18,44 +19,54 @@ export class TenantSelectionFacade {
   private readonly logger = inject(LoggerService);
   private readonly router = inject(Router);
   private readonly contextInitService = inject(ContextInitializationService);
+  private readonly authFlowStore = inject(AuthFlowStore);
 
-  getAvailableTenants(): Observable<AvailableTenant[]> {
+  getAvailableTenants(): void {
     const selectionToken = this.selectionTokenStorage.getSelectionToken();
     if (!selectionToken) {
-      this.logger.error('AUTH', 'No selection token found, redirecting to login');
+      this.logger.error('AUTH ERROR', 'Selection token missing');
       this.router.navigate(['/auth/login']);
-      return throwError(() => new Error('No selection token found'));
+      return;
     }
 
-    this.logger.info('AUTH', 'Loading available tenants');
-    this.authState.setLoading(true);
+    this.logger.info('AUTH API', 'GET /auth/available-tenants');
+    this.authFlowStore.setLoading(true);
+    this.authFlowStore.setError(null);
     
-    return this.authApi.getAvailableTenants(selectionToken).pipe(
+    this.authApi.getAvailableTenants(selectionToken).pipe(
       map(response => response.data),
       tap(tenants => {
-        this.logger.info('AUTH', 'Available tenants loaded', { count: tenants ? tenants.length : 0 });
+        const t = tenants || [];
+        this.authFlowStore.setTenants(t);
+        if (t.length === 0) {
+          this.authFlowStore.setError('No workspaces available.');
+        }
       }),
       catchError(err => {
-        this.logger.error('AUTH', 'Failed to load available tenants', err);
+        this.logger.error('AUTH ERROR', 'Tenant loading failed', err);
+        this.authFlowStore.setError('Could not load available tenants.');
         return throwError(() => err);
       }),
-      finalize(() => this.authState.setLoading(false))
-    );
+      finalize(() => this.authFlowStore.setLoading(false))
+    ).subscribe();
   }
 
-  selectTenant(tenantId: string): Observable<TokenResponse> {
+  selectTenant(tenantId: string): void {
     const selectionToken = this.selectionTokenStorage.getSelectionToken();
     if (!selectionToken) {
+      this.logger.error('AUTH ERROR', 'Selection token missing');
       this.router.navigate(['/auth/login']);
-      return throwError(() => new Error('No selection token found'));
+      return;
     }
 
-    this.logger.info('AUTH', 'Tenant selected', { tenantId });
-    this.authState.setLoading(true);
+    this.logger.info('AUTH FLOW', 'Tenant selected:', { tenantId });
+    this.authFlowStore.setLoading(true);
+    this.authFlowStore.setError(null);
     const request: TenantSelectionRequest = { selectionToken, tenantId };
 
-    return this.authApi.selectTenant(request).pipe(
+    this.authApi.selectTenant(request).pipe(
       tap(response => {
+        this.logger.info('AUTH FLOW', 'Final JWT received');
         const token = response.data;
         this.selectionTokenStorage.clearSelectionToken();
         this.authFacade.finalizeLogin(token);
@@ -63,17 +74,17 @@ export class TenantSelectionFacade {
         // After tenant selection, initialize context
         this.contextInitService.initializeContext().subscribe({
           next: () => {
-             this.logger.info('ROUTER', 'NavigationStart => /dashboard');
+             this.logger.info('AUTH FLOW', 'Redirecting dashboard');
              this.router.navigate(['/dashboard']);
           }
         });
       }),
-      map(response => response.data),
       catchError(err => {
-        this.logger.error('AUTH', 'Tenant selection failed', err);
+        this.logger.error('AUTH ERROR', 'Select tenant failed', err);
+        this.authFlowStore.setError(err.error?.message || 'Tenant selection failed. Please try again.');
         return throwError(() => err);
       }),
-      finalize(() => this.authState.setLoading(false))
-    );
+      finalize(() => this.authFlowStore.setLoading(false))
+    ).subscribe();
   }
 }
