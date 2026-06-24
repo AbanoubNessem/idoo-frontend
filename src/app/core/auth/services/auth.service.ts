@@ -26,7 +26,7 @@ export class AuthService {
         const data = response.data;
         if (!data.requiresTenantSelection && data.user && data.accessToken && data.refreshToken) {
           this.finalizeLogin(data as TokenResponse);
-          this.router.navigate(['/dashboard']);
+          this.router.navigate(['/app/dashboard']);
         } else if (data.requiresTenantSelection && data.selectionToken) {
           // Temporarily store selection token for the next step
           sessionStorage.setItem('selection_token', data.selectionToken);
@@ -71,7 +71,7 @@ export class AuthService {
         const token = response.data;
         sessionStorage.removeItem('selection_token');
         this.finalizeLogin(token);
-        this.router.navigate(['/dashboard']);
+        this.router.navigate(['/app/dashboard']);
       }),
       map(response => response.data),
       catchError(err => throwError(() => err)),
@@ -81,12 +81,50 @@ export class AuthService {
 
   private finalizeLogin(token: TokenResponse): void {
     this.tokenStorage.saveTokens(token.accessToken, token.refreshToken);
-    if (token.user) {
-      this.tokenStorage.saveUser(token.user);
-      this.authState.setUser(token.user);
-      this.loadUserPermissions(token.user.id);
+    
+    let user = token.user;
+
+    // Fallback: If backend does not return user object, decode it from JWT
+    if (!user && token.accessToken) {
+      const payload = this.decodeJwt(token.accessToken);
+      if (payload) {
+        user = {
+          id: payload.userId || payload.sub || '',
+          email: payload.email || '',
+          username: payload.preferred_username || payload.sub || '',
+          firstName: payload.given_name || payload.firstName || '',
+          lastName: payload.family_name || payload.lastName || '',
+          fullName: payload.name || payload.fullName || 'Authenticated User',
+          tenantId: payload.tenantId || null,
+          companyId: payload.companyId || null,
+          mustChangePassword: payload.mustChangePassword || false
+        } as import('../../api/models').UserInfo;
+      }
     }
+
+    if (user) {
+      this.tokenStorage.saveUser(user);
+      this.authState.setUser(user);
+      this.loadUserPermissions(user.id);
+    } else {
+      console.warn('AUTH FLOW: User object could not be resolved from token response or JWT');
+    }
+
     this.authState.setTokens(token.accessToken, token.refreshToken);
+  }
+
+  private decodeJwt(token: string): any {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      console.error('AUTH ERROR: Failed to decode JWT', e);
+      return null;
+    }
   }
 
   refreshToken(): Observable<TokenResponse> {

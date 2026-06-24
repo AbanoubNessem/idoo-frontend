@@ -75,7 +75,7 @@ export class TenantSelectionFacade {
         this.contextInitService.initializeContext().subscribe({
           next: () => {
              this.logger.info('AUTH FLOW', 'Redirecting dashboard');
-             this.router.navigate(['/dashboard']);
+             this.router.navigate(['/app/dashboard']);
           }
         });
       }),

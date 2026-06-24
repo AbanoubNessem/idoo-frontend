@@ -1,0 +1,90 @@
+@import 'styles/design-tokens.scss';
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// ── Reset & Base ─────────────────────────────────────────
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  line-height: var(--line-height-tight);
+}
+
+h1 { font-size: var(--font-size-5xl); font-weight: var(--font-weight-bold); }
+h2 { font-size: var(--font-size-3xl); font-weight: var(--font-weight-semibold); }
+h3 { font-size: var(--font-size-xl);  font-weight: var(--font-weight-semibold); }
+h4 { font-size: var(--font-size-lg);  font-weight: var(--font-weight-medium); }
+h5 { font-size: var(--font-size-base);font-weight: var(--font-weight-medium); }
+h6 { font-size: var(--font-size-sm);  font-weight: var(--font-weight-medium); }
+
+p { margin: 0; }
+
+a {
+  color: var(--color-text-link);
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+
+ul, ol { list-style: none; margin: 0; padding: 0; }
+
+button {
+  font-family: var(--font-family);
+  cursor: pointer;
+}
+
+input, select, textarea {
+  font-family: var(--font-family);
+}
+
+// ── Material Symbols utility ─────────────────────────────
+// .sym is the primary icon class used across ALL components
+// .mat-icon-sym kept as an alias for backward compatibility
+.sym,
+.mat-icon-sym {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  user-select: none;
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+}
+
+// ── Scrollbar (minimal) ───────────────────────────────────
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-hover);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}

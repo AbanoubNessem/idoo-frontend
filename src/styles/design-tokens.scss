@@ -1,39 +1,155 @@
+// ============================================================
+// iDoo ERP – Global Design Tokens
+// 8-px grid · Inter font · Enterprise-grade token system
+// ============================================================
+
 :root {
-  --color-primary: #0F5FFF;
-  --color-primary-dark: #0048D8;
-  --color-primary-light: #EAF2FF;
+  // ── Brand / Primary ─────────────────────────────────────
+  --color-primary:       #0F62FE;
+  --color-primary-dark:  #0043CE;
+  --color-primary-light: #D0E2FF;
+  --color-primary-hover: #0353E9;
+  --color-primary-rgb:   15, 98, 254;
 
-  --color-secondary: #19B5FE;
-
-  --color-success: #22C55E;
-  --color-warning: #F59E0B;
-  --color-danger: #EF4444;
-
-  --color-text-primary: #0F172A;
-  --color-text-secondary: #64748B;
-
-  --color-border: #E2E8F0;
-  --color-border-hover: #CBD5E1;
-
-  --color-background: #F8FAFC;
-  --color-surface: #FFFFFF;
+  // ── Semantic Surface ────────────────────────────────────
+  --color-background:    #F8FAFC;
+  --color-surface:       #FFFFFF;
   --color-surface-hover: #F1F5F9;
+  --color-surface-raised:#FFFFFF;
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 24px;
+  // ── Border ──────────────────────────────────────────────
+  --color-border:        #E5E7EB;
+  --color-border-hover:  #D1D5DB;
+  --color-border-focus:  #0F62FE;
 
-  --shadow-sm: 0 2px 10px rgba(0,0,0,.05);
-  --shadow-md: 0 8px 25px rgba(0,0,0,.08);
-  --shadow-lg: 0 20px 60px rgba(0,0,0,.12);
+  // ── Text ────────────────────────────────────────────────
+  --color-text-primary:   #111827;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary:  #9CA3AF;
+  --color-text-inverse:   #FFFFFF;
+  --color-text-link:      #0F62FE;
 
-  --spacing-1: 4px;
-  --spacing-2: 8px;
-  --spacing-3: 12px;
-  --spacing-4: 16px;
-  --spacing-5: 20px;
-  --spacing-6: 24px;
-  --spacing-8: 32px;
-  --spacing-10: 40px;
-  --spacing-12: 48px;
+  // ── Semantic Status ─────────────────────────────────────
+  --color-success:    #16A34A;
+  --color-success-bg: #F0FDF4;
+  --color-success-border: #BBF7D0;
+
+  --color-warning:    #F59E0B;
+  --color-warning-bg: #FFFBEB;
+  --color-warning-border: #FDE68A;
+
+  --color-danger:     #DC2626;
+  --color-danger-bg:  #FEF2F2;
+  --color-danger-border: #FECACA;
+
+  --color-info:       #0891B2;
+  --color-info-bg:    #ECFEFF;
+  --color-info-border:#A5F3FC;
+
+  // ── Context Bar ─────────────────────────────────────────
+  --color-context-bg:     #EFF6FF;
+  --color-context-border: #BFDBFE;
+  --color-context-text:   #1D4ED8;
+
+  // ── Chart Palette ───────────────────────────────────────
+  --color-chart-1: #0F62FE;
+  --color-chart-2: #60A5FA;
+  --color-chart-3: #BFDBFE;
+  --color-chart-grid: #F3F4F6;
+
+  // ── Spacing (8-px grid) ─────────────────────────────────
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  // Legacy aliases kept for existing components
+  --spacing-1:  var(--space-1);
+  --spacing-2:  var(--space-2);
+  --spacing-3:  var(--space-3);
+  --spacing-4:  var(--space-4);
+  --spacing-5:  var(--space-5);
+  --spacing-6:  var(--space-6);
+  --spacing-8:  var(--space-8);
+  --spacing-10: var(--space-10);
+  --spacing-12: var(--space-12);
+
+  // ── Border Radius ───────────────────────────────────────
+  --radius-xs:   4px;
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
+  --radius-2xl:  24px;
+  --radius-full: 9999px;
+
+  // Card / Button / Input radii (spec)
+  --radius-card:   16px;
+  --radius-button: 12px;
+  --radius-input:  12px;
+  --radius-badge:  6px;
+
+  // ── Shadows (enterprise-subtle) ─────────────────────────
+  --shadow-1: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-2: 0 4px 12px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-3: 0 8px 24px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04);
+  --shadow-4: 0 20px 48px rgba(0,0,0,0.10), 0 8px 16px rgba(0,0,0,0.05);
+  --shadow-primary: 0 4px 16px rgba(15,98,254,0.22);
+
+  // Legacy
+  --shadow-sm: var(--shadow-1);
+  --shadow-md: var(--shadow-2);
+  --shadow-lg: var(--shadow-3);
+
+  // ── Typography ──────────────────────────────────────────
+  --font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+
+  --font-size-xs:   11px;
+  --font-size-sm:   12px;
+  --font-size-base: 14px;
+  --font-size-md:   15px;
+  --font-size-lg:   16px;
+  --font-size-xl:   18px;
+  --font-size-2xl:  20px;
+  --font-size-3xl:  24px;
+  --font-size-4xl:  28px;
+  --font-size-5xl:  32px;
+
+  --font-weight-normal:   400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+
+  --line-height-tight:  1.2;
+  --line-height-snug:   1.375;
+  --line-height-normal: 1.5;
+  --line-height-relaxed:1.625;
+
+  // ── Transitions ─────────────────────────────────────────
+  --transition-fast:   150ms ease;
+  --transition-base:   200ms ease;
+  --transition-slow:   300ms ease;
+  --transition-layout: 280ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  // ── Layout Dimensions ───────────────────────────────────
+  --header-height:        72px;
+  --context-bar-height:   44px;
+  --sidebar-width:        260px;
+  --sidebar-collapsed-w:  68px;
+  --content-max-width:    1600px;
+
+  // ── Z-Index Scale ───────────────────────────────────────
+  --z-below:    -1;
+  --z-base:      0;
+  --z-dropdown: 100;
+  --z-sticky:   200;
+  --z-fixed:    300;
+  --z-modal:    400;
+  --z-toast:    500;
 }

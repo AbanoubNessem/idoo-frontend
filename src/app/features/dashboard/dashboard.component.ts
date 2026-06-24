@@ -1,230 +1,445 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  computed,
+  OnInit,
+} from '@angular/core';
+import { AuthStateService } from '../../core/auth/state/auth.state';
 
+// Sub-components
+import { WelcomeSectionComponent } from './components/welcome-section/welcome-section.component';
+import { KpiCardComponent, KpiCardData } from './components/kpi-card/kpi-card.component';
+import { RevenueChartComponent } from './components/revenue-chart/revenue-chart.component';
+import { QuickActionsComponent, QuickAction } from './components/quick-actions/quick-actions.component';
+import { ActivityTimelineComponent, ActivityItem } from './components/activity-timeline/activity-timeline.component';
+import { TaskListComponent, TaskItem } from './components/task-list/task-list.component';
+import { ModuleCardComponent, ModuleCard } from './components/module-card/module-card.component';
+
+// ── Static data (would come from services in production) ─────────────────────
+
+const KPI_DATA: KpiCardData[] = [
+  {
+    id: 'companies',
+    title: 'Companies',
+    value: 12,
+    growth: '+2 this month',
+    growthDirection: 'up',
+    icon: 'business',
+    iconColor: 'primary',
+  },
+  {
+    id: 'branches',
+    title: 'Branches',
+    value: 43,
+    growth: '+5 this month',
+    growthDirection: 'up',
+    icon: 'account_tree',
+    iconColor: 'info',
+  },
+  {
+    id: 'users',
+    title: 'Users',
+    value: 384,
+    growth: '+18 this month',
+    growthDirection: 'up',
+    icon: 'group',
+    iconColor: 'success',
+  },
+  {
+    id: 'active-users',
+    title: 'Active Users',
+    value: 368,
+    growth: '+12 this month',
+    growthDirection: 'up',
+    icon: 'person_check',
+    iconColor: 'warning',
+  },
+];
+
+const QUICK_ACTIONS: QuickAction[] = [
+  { id: 'add-user',       icon: 'person_add',    label: 'Add User',       color: 'primary', route: '/app/users/new' },
+  { id: 'add-company',    icon: 'add_business',  label: 'Add Company',    color: 'info',    route: '/app/companies/new' },
+  { id: 'add-branch',     icon: 'add_location',  label: 'Add Branch',     color: 'success', route: '/app/branches/new' },
+  { id: 'create-invoice', icon: 'receipt_long',  label: 'Create Invoice', color: 'warning', route: '/app/gl/invoices/new' },
+  { id: 'view-reports',   icon: 'bar_chart',     label: 'View Reports',   color: 'danger',  route: '/app/reports' },
+  { id: 'settings',       icon: 'settings',      label: 'Settings',       color: 'primary', route: '/app/settings' },
+];
+
+const now = new Date();
+const min = (m: number) => new Date(now.getTime() - m * 60_000);
+const hr  = (h: number) => new Date(now.getTime() - h * 3_600_000);
+
+const ACTIVITIES: ActivityItem[] = [
+  {
+    id: 'a1',
+    user: 'John Smith',
+    userInitials: 'JS',
+    action: 'created a new user',
+    target: 'Mary Johnson',
+    timestamp: min(2),
+    icon: 'person_add',
+    category: 'user',
+  },
+  {
+    id: 'a2',
+    user: 'Admin',
+    userInitials: 'AD',
+    action: 'added a branch',
+    target: 'Alexandria Branch',
+    timestamp: min(25),
+    icon: 'add_location',
+    category: 'company',
+  },
+  {
+    id: 'a3',
+    user: 'Finance',
+    userInitials: 'FN',
+    action: 'approved invoice',
+    target: 'INV-2026-0482',
+    timestamp: hr(1),
+    icon: 'task_alt',
+    category: 'invoice',
+  },
+  {
+    id: 'a4',
+    user: 'Abanoub Girgis',
+    userInitials: 'AG',
+    action: 'updated profile settings',
+    timestamp: hr(2),
+    icon: 'manage_accounts',
+    category: 'user',
+  },
+  {
+    id: 'a5',
+    user: 'System',
+    userInitials: 'SY',
+    action: 'backup completed successfully',
+    timestamp: hr(3),
+    icon: 'backup',
+    category: 'system',
+  },
+  {
+    id: 'a6',
+    user: 'Nada Hassan',
+    userInitials: 'NH',
+    action: 'submitted a purchase request',
+    target: '#PR-1043',
+    timestamp: hr(5),
+    icon: 'shopping_cart',
+    category: 'approval',
+  },
+];
+
+const TASKS: TaskItem[] = [
+  { id: 't1', title: 'Approve Purchase Request', priority: 'high',   status: 'pending',     dueLabel: 'Due today' },
+  { id: 't2', title: 'Review Q2 Budget',          priority: 'high',   status: 'pending',     dueLabel: 'Due tomorrow' },
+  { id: 't3', title: 'Complete Profile Setup',    priority: 'medium', status: 'in-progress', dueLabel: 'Due this week' },
+  { id: 't4', title: 'Pending Approvals (3)',     priority: 'medium', status: 'pending' },
+  { id: 't5', title: 'Update Fleet Records',      priority: 'low',    status: 'pending',     dueLabel: 'Due Jun 30' },
+  { id: 't6', title: 'Onboard New Employees',     priority: 'low',    status: 'done' },
+];
+
+const MODULES: ModuleCard[] = [
+  {
+    id: 'gl',
+    icon: 'receipt_long',
+    shortName: 'GL',
+    fullName: 'General Ledger',
+    description: 'Chart of accounts, journals & reports',
+    route: '/app/gl',
+    color: 'primary',
+    enabled: true,
+  },
+  {
+    id: 'fleet',
+    icon: 'directions_car',
+    shortName: 'Fleet',
+    fullName: 'Fleet Management',
+    description: 'Vehicles, maintenance & tracking',
+    route: '/app/fleet',
+    color: 'info',
+    enabled: true,
+  },
+  {
+    id: 'hr',
+    icon: 'badge',
+    shortName: 'HR',
+    fullName: 'Human Resources',
+    description: 'Employees, payroll & attendance',
+    route: '/app/hr',
+    color: 'success',
+    enabled: true,
+  },
+  {
+    id: 'inventory',
+    icon: 'inventory_2',
+    shortName: 'INV',
+    fullName: 'Inventory',
+    description: 'Stock, warehouses & movements',
+    route: '/app/inventory',
+    color: 'warning',
+    enabled: true,
+  },
+  {
+    id: 'crm',
+    icon: 'contacts',
+    shortName: 'CRM',
+    fullName: 'Customer Relationship',
+    description: 'Leads, contacts & opportunities',
+    route: '/app/crm',
+    color: 'danger',
+    enabled: false,
+  },
+  {
+    id: 'purchasing',
+    icon: 'shopping_cart',
+    shortName: 'PO',
+    fullName: 'Purchasing',
+    description: 'Purchase orders & vendors',
+    route: '/app/purchasing',
+    color: 'purple',
+    enabled: false,
+  },
+  {
+    id: 'sales',
+    icon: 'point_of_sale',
+    shortName: 'Sales',
+    fullName: 'Sales',
+    description: 'Quotations, orders & invoicing',
+    route: '/app/sales',
+    color: 'success',
+    enabled: false,
+  },
+  {
+    id: 'reports',
+    icon: 'bar_chart',
+    shortName: 'RPT',
+    fullName: 'Reports & Analytics',
+    description: 'Dashboards, KPIs & data exports',
+    route: '/app/reports',
+    color: 'info',
+    enabled: false,
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Dashboard — Smart (Container) Component.
+ *
+ * Responsibilities:
+ *  - Compose all dashboard sub-components.
+ *  - Provide data (signals / computed) to dumb children.
+ *  - No layout concerns inside children.
+ *
+ * Layout:
+ *  Welcome Section
+ *  ── KPI Row (4 cards)
+ *  ── Revenue (70%) | Quick Actions (30%)
+ *  ── Activities (50%) | Tasks (50%)
+ *  ── Modules Grid (8 cards, 4-col)
+ */
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    WelcomeSectionComponent,
+    KpiCardComponent,
+    RevenueChartComponent,
+    QuickActionsComponent,
+    ActivityTimelineComponent,
+    TaskListComponent,
+    ModuleCardComponent,
+  ],
   template: `
-    <div class="dashboard-header">
-      <h1>Dashboard</h1>
-      <p>Overview of your ERP metrics</p>
-    </div>
+    <div class="dashboard" id="dashboard-root" role="main" aria-label="Main Dashboard">
 
-    <div class="dashboard-grid">
-      <!-- KPI Cards -->
-      <div class="kpi-card">
-        <div class="kpi-icon domain">domain</div>
-        <div class="kpi-content">
-          <h3>Tenants</h3>
-          <div class="kpi-value">12</div>
-          <div class="kpi-subtext">Active Tenants</div>
-        </div>
-      </div>
+      <!-- ── Welcome Section ──────────────────── -->
+      <app-welcome-section [userName]="userName()" />
 
-      <div class="kpi-card">
-        <div class="kpi-icon business">business</div>
-        <div class="kpi-content">
-          <h3>Companies</h3>
-          <div class="kpi-value">24</div>
-          <div class="kpi-subtext">Active Companies</div>
-        </div>
-      </div>
+      <!-- ── KPI Row ──────────────────────────── -->
+      <section class="dashboard__kpi-row" aria-label="Key Performance Indicators">
+        @for (kpi of kpis; track kpi.id) {
+          <app-kpi-card [data]="kpi" />
+        }
+      </section>
 
-      <div class="kpi-card">
-        <div class="kpi-icon group">group</div>
-        <div class="kpi-content">
-          <h3>Users</h3>
-          <div class="kpi-value">156</div>
-          <div class="kpi-subtext">Total Users</div>
+      <!-- ── Chart + Quick Actions Row ───────── -->
+      <section class="dashboard__chart-row" aria-label="Revenue and Quick Actions">
+        <div class="dashboard__chart-cell">
+          <app-revenue-chart />
         </div>
-      </div>
+        <div class="dashboard__qa-cell">
+          <app-quick-actions [actions]="quickActions" />
+        </div>
+      </section>
 
-      <div class="kpi-card">
-        <div class="kpi-icon security">security</div>
-        <div class="kpi-content">
-          <h3>Roles</h3>
-          <div class="kpi-value">18</div>
-          <div class="kpi-subtext">Total Roles</div>
+      <!-- ── Activities + Tasks Row ───────────── -->
+      <section class="dashboard__mid-row" aria-label="Activities and Tasks">
+        <div class="dashboard__activity-cell">
+          <app-activity-timeline [activities]="activities" />
         </div>
-      </div>
+        <div class="dashboard__tasks-cell">
+          <app-task-list [tasks]="tasks" />
+        </div>
+      </section>
 
-      <!-- Chart Area -->
-      <div class="chart-widget">
-        <div class="widget-header">
-          <h3>Users Over Time</h3>
+      <!-- ── Modules Grid ──────────────────────── -->
+      <section class="dashboard__modules-section" aria-label="ERP Modules">
+        <div class="dashboard__section-header">
+          <h2 class="dashboard__section-title">ERP Modules</h2>
+          <span class="dashboard__section-subtitle">Click a module to navigate</span>
         </div>
-        <div class="widget-body">
-          <div class="chart-placeholder">
-            [Chart Area Placeholder]
-          </div>
+        <div class="dashboard__modules-grid">
+          @for (mod of modules; track mod.id) {
+            <app-module-card [card]="mod" />
+          }
         </div>
-      </div>
+      </section>
 
-      <!-- Recent Activities -->
-      <div class="activity-widget">
-        <div class="widget-header">
-          <h3>Recent Activities</h3>
-        </div>
-        <div class="widget-body">
-          <ul class="activity-list">
-            <li>
-              <div class="activity-icon">person_add</div>
-              <div class="activity-details">
-                <span class="action">New user created</span>
-                <span class="entity">Mary Smith</span>
-              </div>
-              <div class="activity-time">10m ago</div>
-            </li>
-            <li>
-              <div class="activity-icon">edit_note</div>
-              <div class="activity-details">
-                <span class="action">Role updated</span>
-                <span class="entity">Finance Manager</span>
-              </div>
-              <div class="activity-time">25m ago</div>
-            </li>
-            <li>
-              <div class="activity-icon">business_center</div>
-              <div class="activity-details">
-                <span class="action">Company created</span>
-                <span class="entity">ABC Trading</span>
-              </div>
-              <div class="activity-time">1h ago</div>
-            </li>
-          </ul>
-        </div>
-      </div>
     </div>
   `,
   styles: [`
-    .dashboard-header {
-      margin-bottom: var(--spacing-6);
+    :host { display: block; min-width: 0; width: 100%; }
+
+    .dashboard {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-6);
+      max-width: var(--content-max-width);
+      margin: 0 auto;
+      padding-bottom: var(--space-8);
+      min-width: 0;
+      width: 100%;
     }
-    .dashboard-header p {
-      color: var(--color-text-secondary);
-      margin-top: var(--spacing-1);
-    }
-    .dashboard-grid {
+
+    /* ── KPI Row ── */
+    .dashboard__kpi-row {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: var(--spacing-6);
+      gap: var(--space-5);
     }
-    .kpi-card {
-      background-color: var(--color-background);
-      border-radius: var(--radius-md);
-      padding: var(--spacing-4);
+
+    /* ── Chart + QA Row ── */
+    .dashboard__chart-row {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: var(--space-5);
+      align-items: stretch;
+      min-height: 360px;
+    }
+
+    .dashboard__chart-cell,
+    .dashboard__qa-cell {
       display: flex;
-      align-items: center;
-      gap: var(--spacing-4);
-      box-shadow: var(--shadow-1);
-      border: 1px solid var(--color-border);
+      flex-direction: column;
     }
-    .kpi-icon {
-      font-family: 'Material Symbols Outlined';
-      width: 48px;
-      height: 48px;
-      border-radius: var(--radius-md);
+
+    /* ── Activities + Tasks Row ── */
+    .dashboard__mid-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-5);
+      min-height: 340px;
+      align-items: stretch;
+    }
+
+    .dashboard__activity-cell,
+    .dashboard__tasks-cell {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
+      flex-direction: column;
     }
-    .kpi-icon.domain { background: var(--color-primary-light); color: var(--color-primary-dark); }
-    .kpi-icon.business { background: var(--color-info-bg); color: var(--color-info); }
-    .kpi-icon.group { background: var(--color-success-bg); color: var(--color-success); }
-    .kpi-icon.security { background: var(--color-warning-bg); color: var(--color-warning); }
-    
-    .kpi-content h3 {
-      font-size: 14px;
-      color: var(--color-text-secondary);
-      font-weight: 500;
+
+    /* ── Modules Section ── */
+    .dashboard__modules-section {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
     }
-    .kpi-value {
-      font-size: 28px;
-      font-weight: 700;
+
+    .dashboard__section-header {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-3);
+    }
+
+    .dashboard__section-title {
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-semibold);
       color: var(--color-text-primary);
-      margin: var(--spacing-1) 0;
-    }
-    .kpi-subtext {
-      font-size: 12px;
-      color: var(--color-text-tertiary);
     }
 
-    .chart-widget {
-      grid-column: span 3;
-      background-color: var(--color-background);
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-1);
-      border: 1px solid var(--color-border);
-    }
-    .activity-widget {
-      grid-column: span 1;
-      background-color: var(--color-background);
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-1);
-      border: 1px solid var(--color-border);
-    }
-
-    .widget-header {
-      padding: var(--spacing-4);
-      border-bottom: 1px solid var(--color-border);
-    }
-    .widget-header h3 {
-      font-size: 16px;
-    }
-    .widget-body {
-      padding: var(--spacing-4);
-    }
-    .chart-placeholder {
-      height: 250px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: var(--color-surface);
-      border-radius: var(--radius-sm);
-      color: var(--color-text-secondary);
-      border: 1px dashed var(--color-border-hover);
-    }
-
-    .activity-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: var(--spacing-4);
-    }
-    .activity-list li {
-      display: flex;
-      align-items: flex-start;
-      gap: var(--spacing-3);
-    }
-    .activity-icon {
-      font-family: 'Material Symbols Outlined';
-      color: var(--color-primary);
-      background-color: var(--color-primary-light);
-      padding: var(--spacing-2);
-      border-radius: var(--radius-full);
-      font-size: 16px;
-    }
-    .activity-details {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-    .activity-details .action {
-      font-size: 14px;
-      font-weight: 500;
-    }
-    .activity-details .entity {
-      font-size: 12px;
+    .dashboard__section-subtitle {
+      font-size: var(--font-size-sm);
       color: var(--color-text-secondary);
     }
-    .activity-time {
-      font-size: 12px;
-      color: var(--color-text-tertiary);
+
+    .dashboard__modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: var(--space-4);
     }
-  `]
+
+    /* ── Responsive: Tablet (768–1024) ── */
+    @media (max-width: 1024px) {
+      .dashboard__kpi-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .dashboard__chart-row {
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+
+      .dashboard__modules-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* ── Responsive: Mobile (<768) ── */
+    @media (max-width: 767px) {
+      .dashboard {
+        gap: var(--space-4);
+      }
+
+      .dashboard__kpi-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-3);
+      }
+
+      .dashboard__chart-row {
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+
+      .dashboard__mid-row {
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+
+      .dashboard__modules-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  `],
 })
-export class DashboardComponent {}
+export class DashboardComponent implements OnInit {
+  private readonly authState = inject(AuthStateService);
+
+  ngOnInit() {
+    console.log('DashboardComponent Loaded');
+  }
+
+  /* ── Data exposed to template ────────────────────────────────────────────── */
+  readonly userName = computed(() =>
+    this.authState.user()?.fullName ?? 'Abanoub Girgis'
+  );
+
+  readonly kpis = KPI_DATA;
+  readonly quickActions = QUICK_ACTIONS;
+  readonly activities = ACTIVITIES;
+  readonly tasks = TASKS;
+  readonly modules = MODULES;
+}
