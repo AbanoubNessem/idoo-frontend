@@ -30,7 +30,7 @@ export class ContextInitializationService {
     // 3. Get User's default Branch
     // For now, we simulate the sequence to show the pattern.
     
-    return this.userApi.getEffectivePermissions(user.id).pipe(
+    return this.userApi.getEffectivePermissionsByUser(user.id).pipe(
       tap(response => {
         this.logger.info('PERMISSION', 'Permissions loaded', { count: response.data?.length });
         this.permissionState.setPermissions(response.data || []);

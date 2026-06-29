@@ -24,7 +24,7 @@ export class MenuService {
       next: response => {
         const items = response.data
           .filter(m => m.isActive)
-          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
           .map(m => this.toMenuItem(m))
           .filter(item => this.isVisible(item));
         this._menuItems.set(items);
@@ -32,14 +32,14 @@ export class MenuService {
     });
   }
 
-  private toMenuItem(module: { code: string; name: string; icon: string; sortOrder: number }): MenuItem {
+  private toMenuItem(module: { code: string; name: string; icon?: string; sortOrder?: number }): MenuItem {
     return {
       moduleCode: module.code,
       label: module.name,
       icon: module.icon || 'apps',
       route: `/app/${module.code.toLowerCase()}`,
       permission: `${module.code}:view`,
-      sortOrder: module.sortOrder,
+      sortOrder: module.sortOrder ?? 0,
     };
   }
 

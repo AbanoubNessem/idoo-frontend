@@ -8,7 +8,7 @@ import { ApiResponse, LoginRequest, RefreshTokenRequest, TokenResponse, LoginRes
 export class AuthApiClient {
   private readonly http = inject(HttpClient);
   private readonly config = inject(APP_CONFIG);
-  private readonly base = `${this.config.apiUrl}/api/v1/auth`;
+  private readonly base = `${this.config.apiUrl}/v1/auth`;
 
   login(body: LoginRequest): Observable<ApiResponse<LoginResponseData>> {
     return this.http.post<ApiResponse<LoginResponseData>>(`${this.base}/login`, body);

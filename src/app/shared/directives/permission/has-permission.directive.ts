@@ -1,5 +1,5 @@
 import {
-  Directive, Input, OnInit, TemplateRef, ViewContainerRef, inject, effect
+  Directive, Input, TemplateRef, ViewContainerRef, inject, effect, input
 } from '@angular/core';
 import { PermissionStateService } from '../../../core/auth/state/permission.state';
 
@@ -9,7 +9,7 @@ import { PermissionStateService } from '../../../core/auth/state/permission.stat
  *   <div *hasPermission="['AUTH:users:create', 'AUTH:users:update']; mode: 'any'">...</div>
  */
 @Directive({ selector: '[hasPermission]', standalone: true })
-export class HasPermissionDirective implements OnInit {
+export class HasPermissionDirective {
   private readonly template = inject(TemplateRef);
   private readonly viewContainer = inject(ViewContainerRef);
   private readonly permissionState = inject(PermissionStateService);
@@ -17,8 +17,13 @@ export class HasPermissionDirective implements OnInit {
   @Input('hasPermission') permissions: string | string[] = [];
   @Input('hasPermissionMode') mode: 'all' | 'any' = 'all';
 
-  ngOnInit(): void {
-    this.updateView();
+  constructor() {
+    // Re-evaluate whenever the permission set signal changes
+    effect(() => {
+      // Access the signal to register a dependency
+      this.permissionState.permissions();
+      this.updateView();
+    });
   }
 
   private updateView(): void {

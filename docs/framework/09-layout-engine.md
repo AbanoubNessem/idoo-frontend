@@ -1,0 +1,199 @@
+# iDoo ERP Platform — Layout Engine
+
+---
+
+## 1. Overview
+
+The Layout Engine defines the structural templates that wrap rendered entity screens. A layout determines the overall arrangement of the page — whether content is in a single panel, split horizontally, organized in tabs, or arranged in a custom grid.
+
+---
+
+## 2. Application Shell
+
+The outermost layout is the Application Shell, always present for authenticated users:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  TopbarComponent                                                 │
+│  [logo] [breadcrumb]           [search] [notifications] [user] │
+├────────────────┬────────────────────────────────────────────────┤
+│                │                                                 │
+│  Sidebar       │         Main Content Area                      │
+│  (MenuEngine)  │         <router-outlet>                        │
+│                │                                                 │
+│  [Module 1]    │   ┌────────────────────────────────────────┐  │
+│  [Module 2]    │   │  PageHeaderComponent                   │  │
+│  [Module 3]    │   │  [title] [breadcrumb] [actions]        │  │
+│  ...           │   ├────────────────────────────────────────┤  │
+│                │   │  Content (list / form / custom)        │  │
+│                │   └────────────────────────────────────────┘  │
+│                │                                                 │
+└────────────────┴────────────────────────────────────────────────┘
+```
+
+The shell is rendered by `ShellComponent` (already implemented). The sidebar width is collapsible.
+
+---
+
+## 3. Page Layouts
+
+Each entity screen uses one of the following page layouts, defined by `PageConfig.layout` in `EntityDef`:
+
+### 3.1 Standard Layout
+
+One full-width content area. Used for most list and form screens.
+
+```
+┌─ PageHeader ──────────────────────────────────────────────┐
+│  Employees                         [+ Create Employee]     │
+├───────────────────────────────────────────────────────────┤
+│  FilterBar                                                  │
+├───────────────────────────────────────────────────────────┤
+│  TableEngine or FormEngine (full width)                    │
+└───────────────────────────────────────────────────────────┘
+```
+
+### 3.2 Split-Pane Layout
+
+Two-column layout: list on the left, detail panel on the right. Used for email-client–style entities (help desk, CRM contacts).
+
+```
+┌─ PageHeader ──────────────────────────────────────────────┐
+│  Tickets                                                   │
+├────────────────────────┬──────────────────────────────────┤
+│  List Panel (40%)      │  Detail Panel (60%)              │
+│  [Ticket row 1]  ←─── │  ┌─ Ticket #123 ──────────────┐ │
+│  [Ticket row 2]       │  │  Subject, Status, Priority  │ │
+│  [Ticket row 3]       │  │  Description                 │ │
+│  ...                  │  │  Activity timeline           │ │
+│                       │  └──────────────────────────────┘ │
+└────────────────────────┴──────────────────────────────────┘
+```
+
+### 3.3 Tabs Layout
+
+Multiple content sections organized in tabs. Used for complex entities (employee profile, customer 360).
+
+```
+┌─ PageHeader ──────────────────────────────────────────────┐
+│  John Doe — Employee                   [Edit] [Deactivate] │
+├───────────────────────────────────────────────────────────┤
+│  [ Personal ] [ Employment ] [ Roles ] [ Branches ] [ Payroll ]
+├───────────────────────────────────────────────────────────┤
+│  Content of active tab                                     │
+│  (FormEngine or TableEngine depending on tab type)         │
+└───────────────────────────────────────────────────────────┘
+```
+
+### 3.4 Dashboard Layout
+
+Grid-based widget canvas. Used exclusively for dashboard-type pages.
+
+```
+┌─ PageHeader ──────────────────────────────────────────────┐
+│  Dashboard                                                 │
+├───────────────────────────────────────────────────────────┤
+│  ┌─ KPI ─┐  ┌─ KPI ─┐  ┌─ KPI ─┐  ┌─ KPI ─┐           │
+│  │       │  │       │  │       │  │       │           │
+│  └───────┘  └───────┘  └───────┘  └───────┘           │
+│                                                            │
+│  ┌─ Revenue Chart (span 2) ──┐  ┌─ Activity Feed ────┐  │
+│  │                           │  │                     │  │
+│  └───────────────────────────┘  └─────────────────────┘  │
+└───────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. PageHeaderComponent
+
+`PageHeaderComponent` is rendered at the top of every entity screen:
+
+**Inputs:**
+
+```typescript
+@Input() title: string;
+@Input() subtitle?: string;
+@Input() icon?: string;
+@Input() breadcrumbs: BreadcrumbItem[];
+@Input() actions: ActionDef[];      // scope: 'list-toolbar' or 'detail-toolbar'
+@Input() loading?: boolean;
+```
+
+Breadcrumbs are auto-generated by `BreadcrumbService` from the current route and entity hierarchy.
+
+---
+
+## 5. Context Bar
+
+The `ContextBarComponent` displays the current workspace context and allows switching:
+
+```
+[Tenant: ACME Corp] > [Company: ACME Egypt] > [Branch: Cairo HQ]
+```
+
+Each segment is a dropdown that allows the user to switch context. Switching triggers `ContextFacade.setCompany()` or `ContextFacade.setBranch()`, which updates the `X-Company-ID` / `X-Branch-ID` headers and refreshes the current data.
+
+---
+
+## 6. Tab Layout Configuration
+
+Tab layouts are declared in `EntityDef.tabs`:
+
+```typescript
+interface TabDef {
+  id: string;
+  label: string;
+  icon?: string;
+  permission?: string;        // tab visible only if permission held
+  content: TabContent;
+}
+
+type TabContent =
+  | { type: 'form';   schema: FormSchema }
+  | { type: 'table';  entityId: string; relation: RelationDef }
+  | { type: 'custom'; component: () => Promise<Type<unknown>> };
+```
+
+Tabs with `permission` that the user does not hold are hidden, not disabled. If all tabs in a group are hidden, the tab bar is hidden entirely.
+
+---
+
+## 7. Responsive Behaviour
+
+| Breakpoint | Sidebar | Content |
+|---|---|---|
+| `< 768px` (mobile) | Hidden (drawer) | Full width |
+| `768px – 1024px` (tablet) | Collapsed (icons only) | Full width |
+| `> 1024px` (desktop) | Expanded (icons + labels) | Remaining width |
+| `> 1440px` (wide) | Expanded | Max-width container |
+
+The platform uses Angular CDK `BreakpointObserver` signals to switch between layouts reactively.
+
+---
+
+## 8. Print Layout
+
+When a user triggers "Print" for a form or table, the `PrintLayoutService` applies a print-specific CSS class that:
+- Hides the shell (sidebar, topbar)
+- Hides action buttons
+- Expands all collapsed sections
+- Renders the content at full print width
+
+---
+
+## 9. Layout Engine API
+
+The `LayoutEngine` service provides layout-related signals:
+
+```typescript
+interface LayoutEngine {
+  readonly sidebarCollapsed: Signal<boolean>;
+  readonly breakpoint: Signal<'mobile' | 'tablet' | 'desktop' | 'wide'>;
+  readonly activeLayout: Signal<'standard' | 'split-pane' | 'tabs' | 'dashboard'>;
+  
+  collapseSidebar(): void;
+  expandSidebar(): void;
+  toggleSidebar(): void;
+}
+```

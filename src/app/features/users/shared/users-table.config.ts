@@ -53,7 +53,7 @@ export function buildUsersTableConfig(handlers: {
       { key: 'roles', label: 'Manage Roles', icon: 'admin_panel_settings', permission: PERMISSIONS.USERS.MANAGE_ROLES, handler: handlers.onManageRoles },
       { key: 'activate', label: 'Activate', icon: 'check_circle', permission: PERMISSIONS.USERS.ACTIVATE, hidden: r => r.status === 'ACTIVE', handler: handlers.onActivate },
       { key: 'deactivate', label: 'Deactivate', icon: 'block', permission: PERMISSIONS.USERS.DEACTIVATE, hidden: r => r.status !== 'ACTIVE', handler: handlers.onDeactivate },
-      { key: 'unlock', label: 'Unlock', icon: 'lock_open', permission: PERMISSIONS.USERS.UNLOCK, hidden: r => r.status !== 'LOCKED', handler: handlers.onUnlock },
+      { key: 'unlock', label: 'Unlock', icon: 'lock_open', permission: PERMISSIONS.USERS.UNLOCK, hidden: r => (r.status as string) !== 'LOCKED', handler: handlers.onUnlock },
       { key: 'delete', label: 'Delete', icon: 'delete', color: 'warn', permission: PERMISSIONS.USERS.DELETE, handler: handlers.onDelete },
     ],
   };

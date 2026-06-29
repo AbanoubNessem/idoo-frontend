@@ -1,0 +1,18 @@
+export type { EntityDef } from '../../registry/registries/entity.registry';
+export type { FormDef, FormSectionDef, FormFieldDef } from '../../registry/registries/form.registry';
+export type { TableDef, ColumnDef } from '../../registry/registries/table.registry';
+export type { RouteDef } from '../../registry/registries/route.registry';
+export type { MenuItemDef } from '../../registry/registries/menu.registry';
+export type { ActionDef, ActionContext, ActionScope } from '../../registry/registries/action.registry';
+export type { PermissionDef } from '../../registry/registries/permission.registry';
+export type { WidgetDef } from '../../registry/registries/widget.registry';
+export type { WorkflowDef, WorkflowStateDef, WorkflowTransitionDef } from '../../registry/registries/workflow.registry';
+export type { DashboardDef, DashboardSlotDef } from '../../registry/registries/dashboard.registry';
+export type { LookupDef, LookupItemDef } from '../../registry/registries/lookup.registry';
+export type { ValidatorDef, ValidatorFactory } from '../../registry/registries/validation.registry';
+export type { ReportDef } from '../../registry/registries/report.registry';
+export type { ThemeDef } from '../../registry/registries/theme.registry';
+export type { LocalizationDef } from '../../registry/registries/localization.registry';
+export type { LayoutDef } from '../../registry/registries/layout.registry';
+export type { PluginManifest, PluginInitFn, AuthorInfo } from '../../plugin/plugin-manifest.model';
+export type { PluginContext } from '../../plugin/plugin-context';
