@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { FormSectionComponent } from '../form-section/form-section.component';
 import { FieldValueChangeEvent } from '../form-field-host/form-field-host.component';
 import { DynamicFormState } from '../../state/dynamic-form-state';
 import { ResolvedSection } from '../../form.types';
+import { LayoutState } from '../../../layout/layout-state';
 
 @Component({
   selector:        'df-accordion-container',
@@ -66,18 +67,18 @@ export class FormAccordionContainerComponent {
   readonly fieldBlur   = output<string>();
   readonly fieldFocus  = output<string>();
 
-  private readonly _openSet = signal<Set<number>>(new Set([0]));
+  private readonly _layoutState = new LayoutState();
+
+  constructor() {
+    // Open first panel by default
+    this._layoutState.openAccordion('0');
+  }
 
   isOpen(index: number): boolean {
-    return this._openSet().has(index);
+    return this._layoutState.openAccordionIds().includes(String(index));
   }
 
   toggle(index: number): void {
-    this._openSet.update(set => {
-      const next = new Set(set);
-      if (next.has(index)) { next.delete(index); }
-      else { next.add(index); }
-      return next;
-    });
+    this._layoutState.toggleAccordion(String(index));
   }
 }

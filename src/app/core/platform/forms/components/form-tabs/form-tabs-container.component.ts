@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { FormSectionComponent } from '../form-section/form-section.component';
 import { FieldValueChangeEvent } from '../form-field-host/form-field-host.component';
 import { DynamicFormState } from '../../state/dynamic-form-state';
 import { ResolvedTab } from '../../form.types';
+import { LayoutState } from '../../../layout/layout-state';
 
 @Component({
   selector:        'df-tabs-container',
@@ -86,13 +87,15 @@ export class FormTabsContainerComponent {
   readonly fieldBlur   = output<string>();
   readonly fieldFocus  = output<string>();
 
-  readonly activeIndex = signal(0);
+  private readonly _layoutState = new LayoutState();
+
+  readonly activeIndex = this._layoutState.activeTabIndex;
 
   readonly visibleTabs = computed(() =>
     this.tabs().filter(t => !t.hiddenExpression),
   );
 
   setTab(index: number): void {
-    this.activeIndex.set(index);
+    this._layoutState.activateTab(index);
   }
 }

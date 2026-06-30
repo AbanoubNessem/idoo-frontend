@@ -2,13 +2,17 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   output,
 } from '@angular/core';
+import { NgStyle } from '@angular/common';
 import { FormFieldHostComponent, FieldValueChangeEvent } from '../form-field-host/form-field-host.component';
 import { FormArrayComponent, ArrayItemChangeEvent } from '../form-array/form-array.component';
 import { DynamicFormState } from '../../state/dynamic-form-state';
 import { ArrayFieldDefinition, FieldState, ResolvedSection } from '../../form.types';
+import { FormLayoutAdapter } from '../../../layout/form-layout.adapter';
+import { LayoutRendererService } from '../../../layout/layout-renderer.service';
 
 // ─── FormSectionComponent ─────────────────────────────────────────────────────
 // Renders a single resolved section: title + field grid.
@@ -18,7 +22,7 @@ import { ArrayFieldDefinition, FieldState, ResolvedSection } from '../../form.ty
   selector:        'df-section',
   standalone:      true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports:         [FormFieldHostComponent, FormArrayComponent],
+  imports:         [FormFieldHostComponent, FormArrayComponent, NgStyle],
   template: `
     @if (!hidden()) {
       <div class="df-section" [class.df-section--collapsed]="isCollapsed()">
@@ -39,7 +43,7 @@ import { ArrayFieldDefinition, FieldState, ResolvedSection } from '../../form.ty
 
             <!-- Direct fields -->
             @if ((section().fields ?? []).length > 0) {
-              <div class="df-field-grid" [style.grid-template-columns]="gridColumns()">
+              <div class="df-field-grid" [ngStyle]="sectionBodyStyle()">
                 @for (field of section().fields ?? []; track field.key) {
                   @if (!getFieldState(field.key).hidden) {
                     <div
@@ -66,7 +70,7 @@ import { ArrayFieldDefinition, FieldState, ResolvedSection } from '../../form.ty
                 @if (group.title) {
                   <h4 class="df-group-title">{{ group.title }}</h4>
                 }
-                <div class="df-field-grid" [style.grid-template-columns]="groupColumns(group.columns)">
+                <div class="df-field-grid" [ngStyle]="groupBodyStyle(group.columns)">
                   @for (field of group.fields; track field.key) {
                     @if (!getFieldState(field.key).hidden) {
                       <div class="df-field-slot" [style.grid-column]="fieldSpan(field.span)">
@@ -134,6 +138,9 @@ import { ArrayFieldDefinition, FieldState, ResolvedSection } from '../../form.ty
   `],
 })
 export class FormSectionComponent {
+  private readonly _layoutAdapter = inject(FormLayoutAdapter);
+  private readonly _layoutRenderer = inject(LayoutRendererService);
+
   readonly section   = input.required<ResolvedSection>();
   readonly formState = input.required<DynamicFormState>();
 
@@ -153,9 +160,15 @@ export class FormSectionComponent {
     this.section().collapsible && this._collapsed,
   );
 
-  readonly gridColumns = computed(() =>
-    `repeat(${this.section().columns || 1}, 1fr)`,
-  );
+  readonly sectionBodyStyle = computed((): Record<string, string> => {
+    const s = this.section();
+    const layoutDef = this._layoutAdapter.sectionToLayoutDefinition(s);
+    const output = this._layoutRenderer.render(layoutDef, {
+      breakpoint: 'md', device: 'desktop', orientation: 'landscape',
+      direction: 'ltr', permissions: [], model: {},
+    });
+    return output.hostCss as Record<string, string>;
+  });
 
   getFieldState(key: string): FieldState {
     return this.formState().getField(key);
@@ -165,8 +178,12 @@ export class FormSectionComponent {
     return span ? `span ${span}` : 'auto';
   }
 
-  groupColumns(columns: number | undefined): string {
-    return `repeat(${columns || 1}, 1fr)`;
+  groupBodyStyle(columns: number | undefined): Record<string, string> {
+    const output = this._layoutRenderer.render(
+      { id: '_group', type: 'grid', config: { grid: { columns: columns || 1, gap: 'var(--platform-spacing-4)' } } },
+      { breakpoint: 'md', device: 'desktop', orientation: 'landscape', direction: 'ltr', permissions: [], model: {} },
+    );
+    return output.hostCss as Record<string, string>;
   }
 
   toggleCollapse(): void {

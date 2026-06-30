@@ -1,0 +1,13 @@
+export * from './table-data.types';
+export * from './table-data.constants';
+export { TableSortContext }           from './table-sort-context';
+export { TableFilterContext }         from './table-filter-context';
+export { TablePaginationContext }     from './table-pagination-context';
+export { TableComparatorRegistry }    from './table-comparator-registry.service';
+export { TableFilterRegistry }        from './table-filter-registry.service';
+export { TableSortingEngine }         from './table-sorting-engine.service';
+export { TableFilteringEngine }       from './table-filtering-engine.service';
+export { TablePaginationEngine }      from './table-pagination-engine.service';
+export type { TablePaginationEngineResult } from './table-pagination-engine.service';
+export { TableDataPipeline }          from './table-data-pipeline.service';
+export { TableDataEngine }            from './table-data-engine.service';
